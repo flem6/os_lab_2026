@@ -42,22 +42,34 @@ int main(int argc, char **argv) {
             seed = atoi(optarg);
             // your code here
             // error handling
+            if (seed <= 0) {
+              printf("seed must be a positive number\n");
+              return 1;
+            }
             break;
           case 1:
             array_size = atoi(optarg);
             // your code here
             // error handling
+            if (array_size <= 0) {
+              printf("array_size must be a positive number\n");
+              return 1;
+            }
             break;
           case 2:
             pnum = atoi(optarg);
             // your code here
             // error handling
+            if (pnum <= 0) {
+              printf("pnum must be a positive number\n");
+              return 1;
+            }
             break;
           case 3:
             with_files = true;
             break;
 
-          defalut:
+          default:
             printf("Index %d is out of options\n", option_index);
         }
         break;
@@ -88,6 +100,8 @@ int main(int argc, char **argv) {
   GenerateArray(array, array_size, seed);
   int active_child_processes = 0;
 
+  int chunk = array_size / pnum;
+
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
@@ -100,12 +114,25 @@ int main(int argc, char **argv) {
         // child process
 
         // parallel somehow
+        unsigned int begin = i * chunk;
+        unsigned int end = (i == pnum - 1) ? array_size : begin + chunk;
+        struct MinMax local = GetMinMax(array, begin, end);
 
         if (with_files) {
           // use files here
+          char filename[64];
+          sprintf(filename, "min_max_%d.txt", i);
+          FILE *f = fopen(filename, "w");
+          if (f == NULL) {
+            perror("fopen");
+            exit(1);
+          }
+          fprintf(f, "%d %d", local.min, local.max);
+          fclose(f);
         } else {
           // use pipe here
         }
+        free(array);
         return 0;
       }
 
@@ -117,6 +144,7 @@ int main(int argc, char **argv) {
 
   while (active_child_processes > 0) {
     // your code here
+    wait(NULL);
 
     active_child_processes -= 1;
   }
@@ -131,6 +159,14 @@ int main(int argc, char **argv) {
 
     if (with_files) {
       // read from files
+      char filename[64];
+      sprintf(filename, "min_max_%d.txt", i);
+      FILE *f = fopen(filename, "r");
+      if (f != NULL) {
+        fscanf(f, "%d %d", &min, &max);
+        fclose(f);
+        remove(filename);
+      }
     } else {
       // read from pipes
     }

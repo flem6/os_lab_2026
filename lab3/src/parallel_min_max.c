@@ -42,34 +42,42 @@ int main(int argc, char **argv) {
             seed = atoi(optarg);
             // your code here
             // error handling
+            //мой код:
             if (seed <= 0) {
               printf("seed must be a positive number\n");
               return 1;
             }
+            //мой код закончился строчкой выше
             break;
           case 1:
             array_size = atoi(optarg);
             // your code here
             // error handling
+            //мой код:
             if (array_size <= 0) {
               printf("array_size must be a positive number\n");
               return 1;
             }
+            //мой код закончился строчкой выше
             break;
           case 2:
             pnum = atoi(optarg);
             // your code here
             // error handling
+            //мой код:
             if (pnum <= 0) {
               printf("pnum must be a positive number\n");
               return 1;
             }
+            //мой код закончился строчкой выше
             break;
           case 3:
             with_files = true;
             break;
 
+          //мой код:
           default:
+          //мой код закончился строчкой выше
             printf("Index %d is out of options\n", option_index);
         }
         break;
@@ -100,10 +108,20 @@ int main(int argc, char **argv) {
   GenerateArray(array, array_size, seed);
   int active_child_processes = 0;
 
+  //мой код:
   int chunk = array_size / pnum;
+  //мой код закончился строчкой выше
 
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
+
+  //мой код:
+  int pipe_fd[2];
+  if (!with_files && pipe(pipe_fd) == -1) {
+    perror("pipe");
+    return 1;
+  }
+  //мой код закончился строчкой выше
 
   for (int i = 0; i < pnum; i++) {
     pid_t child_pid = fork();
@@ -114,12 +132,15 @@ int main(int argc, char **argv) {
         // child process
 
         // parallel somehow
+        //мой код:
         unsigned int begin = i * chunk;
         unsigned int end = (i == pnum - 1) ? array_size : begin + chunk;
         struct MinMax local = GetMinMax(array, begin, end);
+        //мой код закончился строчкой выше
 
         if (with_files) {
           // use files here
+          //мой код:
           char filename[64];
           sprintf(filename, "min_max_%d.txt", i);
           FILE *f = fopen(filename, "w");
@@ -129,10 +150,21 @@ int main(int argc, char **argv) {
           }
           fprintf(f, "%d %d", local.min, local.max);
           fclose(f);
+          //мой код закончился строчкой выше
         } else {
           // use pipe here
+          //мой код:
+          close(pipe_fd[0]);
+          if (write(pipe_fd[1], &local, sizeof(local)) != sizeof(local)) {
+            perror("write");
+            exit(1);
+          }
+          close(pipe_fd[1]);
+          //мой код закончился строчкой выше
         }
+        //мой код:
         free(array);
+        //мой код закончился строчкой выше
         return 0;
       }
 
@@ -142,9 +174,16 @@ int main(int argc, char **argv) {
     }
   }
 
+  //мой код:
+  // parent only reads from the pipe
+  if (!with_files) close(pipe_fd[1]);
+  //мой код закончился строчкой выше
+
   while (active_child_processes > 0) {
     // your code here
+    //мой код:
     wait(NULL);
+    //мой код закончился строчкой выше
 
     active_child_processes -= 1;
   }
@@ -159,6 +198,7 @@ int main(int argc, char **argv) {
 
     if (with_files) {
       // read from files
+      //мой код:
       char filename[64];
       sprintf(filename, "min_max_%d.txt", i);
       FILE *f = fopen(filename, "r");
@@ -167,13 +207,25 @@ int main(int argc, char **argv) {
         fclose(f);
         remove(filename);
       }
+      //мой код закончился строчкой выше
     } else {
       // read from pipes
+      //мой код:
+      struct MinMax local;
+      if (read(pipe_fd[0], &local, sizeof(local)) == sizeof(local)) {
+        min = local.min;
+        max = local.max;
+      }
+      //мой код закончился строчкой выше
     }
 
     if (min < min_max.min) min_max.min = min;
     if (max > min_max.max) min_max.max = max;
   }
+
+  //мой код:
+  if (!with_files) close(pipe_fd[0]);
+  //мой код закончился строчкой выше
 
   struct timeval finish_time;
   gettimeofday(&finish_time, NULL);
